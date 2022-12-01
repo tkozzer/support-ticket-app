@@ -50,12 +50,26 @@ export const getTicket = createAsyncThunk(
   }
 )
 
+// Close ticket
+export const closeTicket = createAsyncThunk(
+  'tickets/close',
+  async (ticketId, thunkAPI) => {
+    try {
+      const token = thunkAPI.getState().auth.user.token
+      return await ticketService.closeTicket(ticketId, token)
+    } catch (error) {
+      return thunkAPI.rejectWithValue(extractErrorMessage(error))
+    }
+  }
+)
+
+// NOTE: removed loading, isSuccess state as it can be infered from presence or
+// absence of tickets for simpler state management with no need for a reset
+// function
+
 export const ticketSlice = createSlice({
   name: 'ticket',
   initialState,
-  reducers: {
-    reset: (state) => initialState,
-  },
   extraReducers: (builder) => {
     builder
       .addCase(getTickets.pending, (state) => {
@@ -69,8 +83,13 @@ export const ticketSlice = createSlice({
       .addCase(getTicket.fulfilled, (state, action) => {
         state.ticket = action.payload
       })
+      .addCase(closeTicket.fulfilled, (state, action) => {
+        state.ticket = action.payload
+        state.tickets = state.tickets.map((ticket) =>
+          ticket._id === action.payload._id ? action.payload : ticket
+        )
+      })
   },
 })
 
-export const { reset } = ticketSlice.actions
 export default ticketSlice.reducer
