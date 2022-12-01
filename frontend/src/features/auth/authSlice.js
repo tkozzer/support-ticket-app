@@ -1,15 +1,19 @@
 import { createSlice, createAsyncThunk, createAction } from '@reduxjs/toolkit'
 import authService from './authService'
+// NOTE: use a extractErrorMessage function to save some repetition
+import { extractErrorMessage } from '../../utils'
 
-// Get user from localStorage
+// Get user from localstorage
 const user = JSON.parse(localStorage.getItem('user'))
 
+// NOTE: remove isSuccess from state as we can infer from
+// presence or absence of user
+// There is no need for a reset function as we can do this in our pending cases
+// No need for isError or message as we can catch the AsyncThunkAction rejection
+// in our component and we will have the error message there
 const initialState = {
-  user: user || null,
-  isError: false,
-  isSuccess: false,
+  user: user ? user : null,
   isLoading: false,
-  message: '',
 }
 
 // Register new user
@@ -19,14 +23,7 @@ export const register = createAsyncThunk(
     try {
       return await authService.register(user)
     } catch (error) {
-      const message =
-        (error.response &&
-          error.response.data &&
-          error.response.data.message) ||
-        error.message ||
-        error.toString()
-
-      return thunkAPI.rejectWithValue(message)
+      return thunkAPI.rejectWithValue(extractErrorMessage(error))
     }
   }
 )
@@ -36,12 +33,7 @@ export const login = createAsyncThunk('auth/login', async (user, thunkAPI) => {
   try {
     return await authService.login(user)
   } catch (error) {
-    const message =
-      (error.response && error.response.data && error.response.data.message) ||
-      error.message ||
-      error.toString()
-
-    return thunkAPI.rejectWithValue(message)
+    return thunkAPI.rejectWithValue(extractErrorMessage(error))
   }
 })
 
@@ -55,16 +47,13 @@ export const logout = createAction('auth/logout', () => {
   return {}
 })
 
+// NOTE: in cases of login or register pending or rejected then user will
+// already be null so no need to set to null in these cases
+
 export const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    reset: (state) => {
-      state.isLoading = false
-      state.isError = false
-      state.isSuccess = false
-      state.message = ''
-    },
     logout: (state) => {
       state.user = null
     },
@@ -75,31 +64,23 @@ export const authSlice = createSlice({
         state.isLoading = true
       })
       .addCase(register.fulfilled, (state, action) => {
-        state.isLoading = false
-        state.isSuccess = true
         state.user = action.payload
-      })
-      .addCase(register.rejected, (state, action) => {
         state.isLoading = false
-        state.isError = true
-        state.message = action.payload
-        state.user = null
+      })
+      .addCase(register.rejected, (state) => {
+        state.isLoading = false
       })
       .addCase(login.pending, (state) => {
-        state.isLoading = true
+        state.isLoading = false
       })
       .addCase(login.fulfilled, (state, action) => {
-        state.isLoading = false
-        state.isSuccess = true
         state.user = action.payload
-      })
-      .addCase(login.rejected, (state, action) => {
         state.isLoading = false
-        state.isError = true
-        state.message = action.payload
-        state.user = null
+      })
+      .addCase(login.rejected, (state) => {
+        state.isLoading = false
       })
   },
 })
-export const { reset } = authSlice.actions
+
 export default authSlice.reducer

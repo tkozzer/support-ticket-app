@@ -1,14 +1,12 @@
 import { useSelector, useDispatch } from 'react-redux'
 import { useEffect } from 'react'
-import { getTickets, reset } from '../features/tickets/ticketSlice'
+import { getTickets } from '../features/tickets/ticketSlice'
 import Spinner from '../components/shared/Spinner'
 import BackButton from '../components/BackButton'
 import TicketItem from '../components/TicketItem'
 
 function Tickets() {
-  const { tickets, isLoading, isSuccess } = useSelector(
-    (state) => state.tickets
-  )
+  const { tickets } = useSelector((state) => state.tickets)
 
   const dispatch = useDispatch()
 
@@ -27,7 +25,7 @@ function Tickets() {
 
   return (
     <>
-      <BackButton url='/' />
+      <BackButton />
       <h1>Tickets</h1>
       <div className='tickets'>
         <div className='ticket-headings'>
